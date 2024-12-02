@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dragonfly Optimization</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1 class="text-center text-2xl font-bold mt-10 mb-10">
+        Dragonfly Optimization - Maximization
+    </h1>
+    <table class="min-w-full">
+        <thead>
+            <tr>
+                <th class="border border-gray-300 p-2">Particle</th>
+                <th class="border border-gray-300 p-2">Position</th>
+                <th class="border border-gray-300 p-2">Fitness</th>
+                <th class="border border-gray-300 p-2">Velocity</th>
+                <th class="border border-gray-300 p-2">Pbest</th>
+                <th class="border border-gray-300 p-2">Pbest Fitness</th>
+            </tr>
+        </thead>
+        <tbody id="particleTableBody"></tbody>
+    </table>
+    <div class="mt-5 text-center">
+        <p id="gbestFitness" class="text-lg font-semibold">Gbest Fitness :</p>
+        <p id="gbestPosition" class="text-lg font-semibold">Gbest Position :</p>
+    </div>
+
+    <div class="text-center mt-5">
+        <button id="startButton" class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2">Start Optimization</button>
+    </div>
+
+    <div class="mt-5">
+        <canvas id="fitnessChart"></canvas>
+    </div>
+
+    <script type="module">
+        import { maxProfit } from "./MaxProfit.js";
+        import { Dragonfly } from "./dragonfly.js";
+
+        const tableBody = document.getElementById("particleTableBody");
+        const gbestFitnessElement = document.getElementById("gbestFitness");
+        const gbestPositionElement = document.getElementById("gbestPosition");
+        const startButton = document.getElementById("startButton");
+        const fitnessChartCtx = document.getElementById("fitnessChart").getContext("2d");
+        const n_particle = 10;
+        const dragonfly = new Dragonfly(n_particle, 2, maxProfit);
+
+        let iteration = 0;
+        let gbestFitnessData = [];
+        let labels = [];
+
+        const fitnessChart = new Chart(fitnessChartCtx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Gbest Fitness',
+                    data: gbestFitnessData,
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    fill: true,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {        
+                        title: {
+                            display: true,
+                            text: 'Iteration'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Gbest Fitness'
+                        },
+                    }
+                }
+            }
+        });
+
+        function updateTable() {
+            tableBody.innerHTML = "";
+            dragonfly.particles.forEach((particle, index) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td class="border border-gray-300 p-2">${index + 1}</td>
+                    <td class="border border-gray-300 p-2">${particle.position.map(p => p.toFixed(2)).join(",")}</td>
+                    <td class="border border-gray-300 p-2">${particle.fitness.toFixed(2)}</td>
+                    <td class="border border-gray-300 p-2">${particle.velocity.map(v => v.toFixed(2)).join(",")}</td>
+                    <td class="border border-gray-300 p-2">${particle.pbest.map(pb => pb.toFixed(2)).join(",")}</td>
+                    <td class="border border-gray-300 p-2">${particle.pbestFitness.toFixed(2)}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            gbestFitnessElement.textContent = `Gbest Fitness : ${dragonfly.gbestFitness.toFixed(2)}`;
+            gbestPositionElement.textContent = `Gbest Position : [${dragonfly.gbestPosition.map(gp => gp.toFixed(2)).join(", ")}]`;
+        }
+
+        function updateChart() {
+            labels.push(iteration);
+            gbestFitnessData.push(dragonfly.gbestFitness);
+            fitnessChart.update();
+        }
+
+        function runDAIterations() {
+            const maxIterations = 50;
+            const interval = setInterval(() => {
+                dragonfly.mainDA();
+                updateTable();
+                updateChart();
+                iteration++;
+
+                if (iteration >= maxIterations) {
+                    clearInterval(interval);
+                }
+            }, 500);
+        }
+
+        startButton.addEventListener('click', () => {
+            runDAIterations();
+        });
+    </script>
+</body>
+</html>
